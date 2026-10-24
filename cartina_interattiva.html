@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cartina Interattiva della Palestina ai Tempi di Gesù</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f1ea;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #4a3b32;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        p.subtitle {
+            color: #6a5a4e;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .map-container {
+            position: relative;
+            max-width: 100%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #e5e0d8;
+        }
+        .map-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 85vh;
+        }
+        .marker {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: #ff3b30;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        .marker:hover {
+            background-color: #ffcc00;
+            transform: translate(-50%, -50%) scale(1.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            z-index: 100;
+        }
+        /* Popup standard CSS */
+        .popup {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.96);
+            border-left: 5px solid #8e44ad;
+            padding: 12px 16px;
+            border-radius: 6px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+            width: 280px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -110%) scale(0.9);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 200;
+            color: #333;
+        }
+        .popup h3 {
+            margin: 0 0 6px 0;
+            font-size: 16px;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 4px;
+        }
+        .popup p {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #555;
+        }
+        .marker:hover + .popup {
+            opacity: 1;
+            transform: translate(-50%, -120%) scale(1);
+        }
+        .instructions {
+            margin-top: 20px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 6px;
+            max-width: 600px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>La Palestina ai Tempi di Gesù</h1>
+    <p class="subtitle">Passa il mouse sopra i punti rossi per scoprire i dettagli dei luoghi biblici e storici.</p>
+
+    <div class="map-container">
+        <!-- Riferimento all'immagine caricata dall'utente -->
+        <img src="cartina.png" alt="Mappa della Palestina" class="map-image">
+        
+        <div id="markers-root"></div>
+    </div>
+
+    <div class="instructions">
+        <strong>Come pubblicare online questa mappa gratuitamente:</strong>
+        <ol>
+            <li>Scarica questo file HTML e l'immagine della cartina fornita dall'assistente.</li>
+            <li>Rinomina l'immagine in <code>cartina.png</code> e salvala nella stessa cartella del file HTML.</li>
+            <li>Per pubblicarla online gratis, carica entrambi i file su una piattaforma di hosting statico gratuito come <strong>GitHub Pages</strong> o <strong>Netlify</strong>.</li>
+        </ol>
+    </div>
+
+    <script>
+        const places = [
+    {
+        "id": 1,
+        "title": "Palestina - Israele",
+        "desc": "La Palestina biblica comprendeva territori oggi appartenenti a realtà politiche diverse. Per la cartina è utile mostrare il paesaggio attuale, distinguendolo dalla geografia politica antica. La Terra Santa comprende soprattutto Israele e la Cisgiordania; Gerusalemme, Betlemme, Nazaret e il lago di Tiberiade sono i luoghi più legati ai Vangeli. Il nome “Palestina” divenne comune in epoca romana, dopo la rivolta ebraica del 135 d.C. Il popolo d’Israele si formò nelle tribù discendenti dai figli di Giacobbe. Dopo la morte di Salomone il regno si divise in Regno del Nord (Israele) e Regno del Sud (Giuda). Il nome deriva dai Filistei, popolo della costa citato già in Gen 21,32; al tempo di Gesù la regione era sotto il dominio romano (Lc 2,1-2).",
+        "x": 45,
+        "y": 50
+    },
+    {
+        "id": 2,
+        "title": "Galilea",
+        "desc": "Regione settentrionale legata a gran parte della vita pubblica di Gesù. Oggi conserva paesaggi collinari, centri ABI tati e il Lago di Tiberiade. In Galilea si trovano Nazaret, Cana, Cafarnao, il Monte Tabor e il Monte delle Beatitudini. Il lago è anche chiamato Mare di Galilea o lago di Gennesaret. Regione in cui Gesù crebbe e iniziò la sua missione, chiamando i primi discepoli sul lago (Mt 4,12-22).",
+        "x": 55,
+        "y": 20
+    },
+    {
+        "id": 3,
+        "title": "Samaria",
+        "desc": "Regione tra Galilea e Giudea. Nell'area si trovano oggi Nablus, il Monte Garizim e il luogo tradizionalmente collegato a Sicar. I Samaritani conservano ancora oggi una comunità religiosa, con il proprio Pentateuco e il culto centrato sul Monte Garizim. Tra Giudei e Samaritani esisteva una forte ostilità, che rende significative le parabole e gli incontri di Gesù. Regione dei Samaritani, dove Gesù incontrò la donna al pozzo (Gv 4) e un abitante di questa regione è il protagonista della parabola del Buon Samaritano (Lc 10,25-37).",
+        "x": 45,
+        "y": 45
+    },
+    {
+        "id": 4,
+        "title": "Giudea",
+        "desc": "Regione meridionale legata a Gerusalemme, Betlemme e Gerico. Il paesaggio passa dalle colline al deserto verso la valle del Giordano. La Giudea era la regione religiosa e politica più importante per il giudaismo, perché conteneva il Tempio di Gerusalemme. Il deserto di Giudea si estende tra Gerusalemme e il Mar Morto. Qui nacque il Regno di Giuda (1 Re 12,17) e al tempo di Gesù governava il prefetto romano Ponzio Pilato (Lc 3,1).",
+        "x": 35,
+        "y": 75
+    },
+    {
+        "id": 5,
+        "title": "Regno del Nord o di Israele",
+        "desc": "Il Regno del Nord non esiste più. Una fotografia attuale di Sebaste permette di vedere il sito dell'antica Samaria, che ne fu capitale. Israele nella Bibbia indica il popolo e, in determinati periodi, un antico regno. Per non confonderlo con lo Stato contemporaneo, usiamo un sito archeologico. Il Regno del Nord aveva come capitali Sichem, Tirza e infine Samaria. I suoi re più noti furono Omri, Acab e Ieu. Il nome Israele fu dato a Giacobbe (Gen 32,29): i suoi dodici figli diedero origine alle dodici tribù, il popolo a cui appartiene Gesù. Alla morte di Salomone dieci tribù si separarono formando il Regno d'Israele (1 Re 12), che gli Assiri distrussero nel 722 a.C. (2 Re 17).",
+        "x": 35,
+        "y": 40
+    },
+    {
+        "id": 6,
+        "title": "Davide - Regno di Giuda o del Sud",
+        "desc": "Il regno attribuito a Davide appartiene all'antichità. Per rappresentarlo usiamo l'attuale area archeologica di Gerusalemme associata alla città antica. Davide regnò intorno al X secolo a.C. e unificò le tribù d’Israele. A suo figlio Salomone è attribuita la costruzione del primo Tempio di Gerusalemme. Davide, giovane pastore di Betlemme, divenne re e fece di Gerusalemme la sua capitale (2 Sam 5,1-12); da lui discende Gesù (Mt 1,1). Il Regno di Giuda, o Regno del Sud, non esiste più. Per rappresentarlo usiamo l’area archeologica di Gerusalemme, che ne fu la capitale. Dopo la morte di Salomone, le tribù meridionali rimasero fedeli alla dinastia di Davide e formarono il Regno di Giuda (1 Re 12,20-21). Ebbe come capitale Gerusalemme e come re più noti Roboamo, Ezechia, Giosia e l’ultimo re, Sedecia. Il Regno di Giuda sopravvisse alla caduta del Regno del Nord nel 722 a.C., ma fu conquistato dai Babilonesi: Gerusalemme e il Tempio furono distrutti nel 586 a.C. e molti abitanti furono deportati a Babilonia (2 Re 25). Da questo regno proveniva la dinastia di Davide, alla quale i Vangeli collegano la nascita di Gesù a Betlemme (Mt 1,1-16; Lc 2,4).",
+        "x": 35,
+        "y": 65
+    },
+    {
+        "id": 7,
+        "title": "Assiria",
+        "desc": "L'Impero assiro non esiste più. Una fotografia moderna dei suoi resti archeologici permette di collegare il racconto storico a testimonianze ancora visibili. L’Assiria aveva il suo centro nell’attuale Iraq settentrionale. Nel 722 a.C. conquistò Samaria e deportò gran parte della popolazione del Regno del Nord. Impero che distrusse il Regno del Nord (2 Re 17) e assediò invano Gerusalemme sotto Ezechia (2 Re 18-19); a Ninive fu mandato il profeta Giona (Gn 3).",
+        "x": 85,
+        "y": 15
+    },
+    {
+        "id": 8,
+        "title": "Babilonia",
+        "desc": "L'antica Babilonia oggi è un sito archeologico. Le sue rovine ricordano la potenza che conquistò Gerusalemme nel VI secolo a.C. La deportazione a Babilonia is chiamata Esilio babilonese e durò circa cinquant’anni. Nel 539 a.C. il re persiano Ciro conquistò Babilonia e permise il ritorno in Giudea. Il re Nabucodonosor distrusse Gerusalemme e deportò i Giudei a Babilonia nel 586 a.C. (2 Re 25); Ciro permise poi il ritorno (Esd 1).",
+        "x": 85,
+        "y": 85
+    },
+    {
+        "id": 9,
+        "title": "Nazaret",
+        "desc": "Nazaret è oggi una città moderna. La Basilica dell'Annunciazione ricorda il luogo tradizionalmente associato all'annuncio dell'angelo Gabriele a Maria. Nazaret era un piccolo villaggio della Galilea, non citato nell’Antico Testamento. Oggi la Basilica dell’Annunciazione conserva la Grotta dell’Annunciazione, venerata come la casa di Maria; la città è abitata soprattutto da cristiani e musulmani arabi. Qui l'angelo Gabriele annunciò a Maria la nascita di Gesù (Lc 1,26-38), che vi crebbe con Maria e Giuseppe (Lc 2,39-40).",
+        "x": 53,
+        "y": 22
+    },
+    {
+        "id": 10,
+        "title": "Betlemme",
+        "desc": "Betlemme is oggi una città della Cisgiordania. La Basilica della Natività sorge sul luogo venerato dalla tradizione cristiana come nascita di Gesù. Betlemme si trova a circa 10 km a sud di Gerusalemme. La Basilica della Natività, costruita nel IV secolo e più volte restaurata, è una delle chiese più antiche ancora in uso; sotto l’altare si trova la Grotta della Natività. Città di Davide (1 Sam 16,1-13) e luogo in cui nacque Gesù (Lc 2,1-7; Mt 2,1).",
+        "x": 36,
+        "y": 78
+    },
+    {
+        "id": 11,
+        "title": "Cana",
+        "desc": "La tradizione cristiana identifica Kafr Kanna con Cana di Galilea, dove il Vangelo di Giovanni ambienta il segno dell'acqua trasformata in vino. Qui Gesù compì il seu primo segno, trasformando l'acqua in vino durante una festa di nozze (Gv 2,1-11).",
+        "x": 58,
+        "y": 18
+    },
+    {
+        "id": 12,
+        "title": "Cafarnao",
+        "desc": "Oggi Cafarnao è un importante sito archeologico sulle rive del Lago di Tiberiade. Le rovine aiutano a immaginare l'ambiente in cui operò Gesù. A Cafarnao si conservano i resti della sinagoga in pietra e di una casa identificata dalla tradizione con la casa di Pietro. Il villaggio era un piccolo centro di pescatori e commercianti sul lago; qui Gesù chiamò Pietro, Andrea, Giacomo e Giovanni. Base della missione di Gesù in Galilea (Mt 4,13), dove insegnò nella sinagoga e guarì molti malati (Mc 1,21-34).",
+        "x": 71,
+        "y": 16
+    },
+    {
+        "id": 13,
+        "title": "Naim",
+        "desc": "L'attuale villaggio di Nein conserva un santuario che ricorda l'episodio evangelico della risurrezione del figlio della vedova. Naim si trova a sud-ovest del Monte Tabor, in Galilea. Il nome arabo Nein deriva probabilmente dall’ebraico “piacevole”. Qui Gesù risuscitò il figlio unico di una vedova (Lc 7,11-17).",
+        "x": 52,
+        "y": 26
+    },
+    {
+        "id": 14,
+        "title": "Cesarea di Filippo",
+        "desc": "Il sito di Banias conserva resti dell'antica Cesarea di Filippo. Qui i Vangeli ambientano la professione di fede di Pietro. Il sito si trova alle sorgenti del Giordano, ai piedi del Monte Hermon. In epoca romana era un centro del culto del dio Pan, da cui deriva il nome Banias. Qui Pietro riconobbe Gesù come il Cristo, il Figlio del Dio vivente (Mt 16,13-20).",
+        "x": 78,
+        "y": 10
+    },
+    {
+        "id": 15,
+        "title": "Gerico",
+        "desc": "Gerico è ancora oggi abitata. Tell es-Sultan conserva i resti dell'antichissimo insediamento, mentre la città moderna si estende nell'oasi. Gerico è una delle città abitate più antiche del mondo. Si trova nella valle del Giordano, sotto il livello del mare, ed è circondata da palme e sorgenti. Le sue mura crollarono davanti a Giosuè (Gs 6); qui Gesù guarì il cieco Bartimeo (Mc 10,46-52) e incontrò Zaccheo (Lc 19,1-10).",
+        "x": 63,
+        "y": 61
+    },
+    {
+        "id": 16,
+        "title": "Betania",
+        "desc": "L'antica Betania è identificata con l'attuale al-Eizariya, vicino a Gerusalemme. Qui si visita il luogo tradizionalmente indicato come Tomba di Lazzaro. Betania si trovava sul versante orientale del Monte degli Ulivi, a circa 3 km da Gerusalemme. Il nome arabo al-Eizariya ricorda Lazzaro, in arabo al-Azir. Casa di Marta, Maria e Lazzaro, dove Gesù risuscitò Lazzaro (Gv 11,1-44).",
+        "x": 45,
+        "y": 69
+    },
+    {
+        "id": 17,
+        "title": "Gerusalemme",
+        "desc": "Gerusalemme conserva ancora oggi molti dei luoghi legati alla tradizione biblica e cristiana. Il suo aspetto attuale è il risultato di secoli di storia successivi a Gesù. Nella Città Vecchia si trovano il Santo Sepolcro, la Via Dolorosa, il Muro Occidentale e il Monte degli Ulivi. La città è sacra per ebrei, cristiani e musulmani; il Santo Sepolcro è venerato come luogo della crocifissione, sepoltura e risurrezione di Gesù. Capitale di Davide (2 Sam 5,6-9) e luogo della passione, morte e risurrezione di Gesù (Lc 22-24).",
+        "x": 38,
+        "y": 68
+    },
+    {
+        "id": 18,
+        "title": "Emmaus",
+        "desc": "L'identificazione dell'Emmaus evangelica non è certa. Emmaus Nicopolis è uno dei luoghi tradizionalmente proposti e conserva resti archeologici visitabili. Luca colloca Emmaus a circa 60 stadi da Gerusalemme, cioè circa 11 km. Diverse località sono state proposte come Emmaus; la tradizione più nota indica Emmaus Nicopolis, presso l’attuale Abu Ghosh. Sulla strada per Emmaus, la sera di Pasqua, due discepoli riconobbero Gesù risorto nello spezzare il pane (Lc 24,13-35).",
+        "x": 22,
+        "y": 66
+    },
+    {
+        "id": 19,
+        "title": "Pozzo di Giacobbe – Sicar",
+        "desc": "Sicar è collegata nel Vangelo all'incontro tra Gesù e la Samaritana. La sua localizzazione viene generalmente cercata nell'area di Nablus e del Pozzo di Giacobbe, conservato in un santuario. Sicar si trovava vicino all’antica Sichem, tra i monti Garizim ed Ebal. Il Pozzo di Giacobbe è profondo circa 30 metri ed è ancora oggi visitabile. Il pozzo si trova nella cripta della chiesa ortodossa greca di Bir Ya’qub, presso Nablus. È uno dei pochi luoghi della Terra Santa la cui identificazione è considerata molto solida. Il pozzo è legato al terreno acquistato da Giacobbe (Gen 33,19). Qui, presso il pozzo di Giacobbe, Gesù parlò con la donna samaritana e si rivelò come Messia (Gv 4,5-26).",
+        "x": 58,
+        "y": 46
+    },
+    {
+        "id": 20,
+        "title": "Samaria – città",
+        "desc": "L'antica Samaria, capitale del Regno del Nord, è oggi riconoscibile nel sito archeologico di Sebaste, vicino a Nablus. Il sito di Sebaste conserva resti romani, bizantini e crociati. Il nome “Sebaste” fu dato da Erode in onore dell’imperatore Augusto. Capitale del Regno del Nord fondata da Omri (1 Re 16,24), conquistata dagli Assiri nel 722 a.C. (2 Re 17,5-6); più tardi vi predicò Filippo (At 8,5).",
+        "x": 38,
+        "y": 43
+    },
+    {
+        "id": 21,
+        "title": "Monte Garizim",
+        "desc": "Il Monte Garizim domina l'area di Nablus ed è ancora oggi un luogo sacro per la comunità samaritana. Il Garizim si trova di fronte al Monte Ebal, con la valle di Nablus tra i due. Per i Samaritani è il luogo scelto da Dio per il culto, in alternativa al Tempio di Gerusalemme. Sul Garizim furono proclamate le benedizioni dell'Alleanza (Dt 11,29); Gesù disse alla Samaritana che si sarebbe adorato Dio «in spirito e verità» (Gv 4,20-24).",
+        "x": 50,
+        "y": 47
+    },
+    {
+        "id": 22,
+        "title": "Monte Tabor",
+        "desc": "Il Monte Tabor emerge nettamente dalla pianura circostante. La tradizione cristiana lo collega alla Trasfigurazione di Gesù. Il Tabor si innalza isolato nella pianura di Jezreel, in Bassa Galilea. Sulla cima sorge la Basilica della Trasfigurazione, costruita negli anni Venti del Novecento. Monte tradizionalmente legato alla Trasfigurazione, dove Gesù apparve in gloria con Mosè ed Elia (Mt 17,1-9); qui Debora e Barak radunarono le tribù (Gdc 4,6).",
+        "x": 48,
+        "y": 24
+    },
+    {
+        "id": 23,
+        "title": "Monte delle Beatitudini",
+        "desc": "L'altura offre ancora oggi un ampio panorama sul Lago di Tiberiade. La tradizione cristiana la collega al Discorso della Montagna. Il sito si trova sulla collina sopra Tabga, sulla riva nord-occidentale del lago. La chiesa ottagonale moderna fu costruita nel 1938 su resti bizantini più antichi. Qui, secondo la tradizione, Gesù pronunciò il Discorso della Montagna con le Beatitudini (Mt 5,1-12 e Lc 6,20-38).",
+        "x": 66,
+        "y": 16
+    },
+    {
+        "id": 24,
+        "title": "Fiume Giordano",
+        "desc": "Il Giordano scorre ancora oggi nella valle che porta il suo nome. La tradizione cristiana ricorda lungo il fiume il Battesimo di Gesù. Il Giordano nasce dal Monte Hermon, attraversa il lago di Tiberiade e sfocia nel Mar Morto. Il principale sito del Battesimo è Qasr al-Yahud, vicino a Gerico. Nel Giordano Gesù fu battezzato da Giovanni Battista (Mc 1,9-11); secoli prima Israele lo aveva attraversato con Giosuè (Gs 3).",
+        "x": 67,
+        "y": 45
+    },
+    {
+        "id": 25,
+        "title": "Lago di Tiberiade / Mare di Galilea",
+        "desc": "Il Lago di Tiberiade è ancora uno degli elementi più riconoscibili del paesaggio della Galilea. Molti episodi evangelici sono ambientati sulle sue rive. Il lago è lungo circa 21 km e si trova a circa 210 metri sotto il livello del mare. Le sue rive ospitano Cafarnao, Tabga, il Monte delle Beatitudini e la città di Tiberiade. Sulle sue rive Gesù chiamò i primi discepoli (Mt 4,18-22), calmò la tempesta (Mc 4,35-41) e apparve dopo la risurrezione (Gv 21,1-14).",
+        "x": 70,
+        "y": 22
+    },
+    {
+        "id": 26,
+        "title": "Mar Morto",
+        "desc": "Il Mar Morto è ancora oggi caratterizzato dalle acque molto salate e dal paesaggio desertico. La linea di costa si è notevolmente modificata nel tempo. Il Mar Morto è il punto più basso della superficie terrestre, oltre 430 metri sotto il livello del mare. La sua salinità è così alta che nessun pesce o pianta acquatica può viverci. Sulle sue rive la Bibbia colloca Sodoma e Gomorra (Gen 19); a Engaddi, vicino al lago, si nascose Davide (1 Sam 24,1-2).",
+        "x": 68,
+        "y": 78
+    },
+    {
+        "id": 27,
+        "title": "Strada da Gerusalemme a Gerico",
+        "desc": "La strada moderna non coincide in ogni tratto con quella antica, ma il paesaggio desertico permette di comprendere l'ambiente della parabola del Buon Samaritano. La strada scende da circa 750 metri sul livello del mare, a Gerusalemme, fino a circa 250 metri sotto il livello del mare, a Gerico. Il dislivello e il deserto rendevano il viaggio difficile e pericoloso. Su questa strada Gesù ambientò la parabola del Buon Samaritano (Lc 10,25-37).",
+        "x": 52,
+        "y": 64
+    },
+    {
+        "id": 28,
+        "title": "Tempio di Gerusalemme",
+        "desc": "Il Tempio dell'epoca di Gesù fu distrutto nel 70 d.C. La fotografia mostra l'area oggi: non va confusa con l'aspetto del Secondo Tempio. Il Tempio sorgeva sul Monte del Tempio, oggi chiamato Spianata delle Moschee. Del Secondo Tempio resta soprattutto il Muro Occidentale, luogo di preghiera ebraica. Costruito da Salomone (1 Re 6) e distrutto dai Babilonesi (2 Re 25,9), poi ricostruito; Gesù vi insegnò e ne annunciò la distruzione (Mc 13,1-2), avvenuta nel 70 d.C.",
+        "x": 42,
+        "y": 67
+    }
+];
+
+        const root = document.getElementById('markers-root');
+        places.forEach(place => {
+            // Marker element
+            const marker = document.createElement('div');
+            marker.className = 'marker';
+            marker.style.left = place.x + '%';
+            marker.style.top = place.y + '%';
+            marker.setAttribute('title', place.title);
+
+            // Popup element
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.style.left = place.x + '%';
+            popup.style.top = place.y + '%';
+            
+            popup.innerHTML = `
+                <h3>${place.id}. ${place.title}</h3>
+                <p>${place.desc}</p>
+            `;
+
+            root.appendChild(marker);
+            root.appendChild(popup);
+        });
+    </script>
+</body>
+</html>
